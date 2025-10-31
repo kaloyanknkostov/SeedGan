@@ -23,8 +23,8 @@ OUTPUT_DIR = os.path.join(BASE_DIR, "data", "crops_with_no_background")
 
 # We set a minimum Saturation (40) and Value (40) to avoid
 # picking up dark/grayish pixels that might be tinted green.
-lower_green = np.array([35, 40, 40])
-upper_green = np.array([85, 255, 255])
+lower_green = np.array([30, 35, 40])
+upper_green = np.array([90, 255, 255])
 
 # Supported image extensions
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff")
