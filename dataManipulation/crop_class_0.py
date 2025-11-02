@@ -8,7 +8,6 @@ import numpy as np
 IMAGE_DIR = os.path.join("data", "original", "images")
 LABEL_DIR = os.path.join("data", "original", "labels")
 OUTPUT_DIR = os.path.join("data", "crops_with_background")
-
 # Supported image extensions
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff")
 # --- End Configuration ---
