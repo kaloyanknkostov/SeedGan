@@ -55,15 +55,16 @@ def train():
 
             pbar.set_description(f"Epoch {epoch}/{config.EPOCHS} | Loss: {loss.item():.4f}")
 
-        # Save a checkpoint after each epoch
-        checkpoint_path = os.path.join(config.CHECKPOINT_DIR, f"ddpm_checkpoint_epoch_{epoch}.pth")
-        torch.save({
-            'epoch': epoch,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-        }, checkpoint_path)
+        # Save a numbered checkpoint every 10 epochs
+        if epoch % 10 == 0:
+            checkpoint_path = os.path.join(config.CHECKPOINT_DIR, f"ddpm_checkpoint_epoch_{epoch}.pth")
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+            }, checkpoint_path)
 
-        # Save the latest checkpoint
+        # Always save the latest checkpoint after each epoch
         torch.save({
             'epoch': epoch,
             'model_state_dict': model.state_dict(),

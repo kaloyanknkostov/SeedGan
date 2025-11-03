@@ -8,6 +8,7 @@ This project aims to create a Denoising Diffusion Probabilistic Model (DDPM) usi
 *   **Core Technology:** PyTorch
 *   **Model Architecture:** U-Net
 *   **Dataset:** 14,000 images of crops located at `/home/kaloyan/Code/Thesis/SeedGan/data/crops_with_background_scaled4x`.
+*   **Training Started:** 03:00, 3rd November 2025.
 
 ## Project Structure
 
@@ -26,14 +27,34 @@ The project follows this structure:
 
 ## Building and Running
 
-### 1. Install Dependencies
+### 1. Create Conda Environment
+
+It is recommended to use a Conda environment for this project.
 
 ```bash
-# TODO: Create requirements.txt
+# Create a new conda environment named 'ddpm'
+conda create --name ddpm python=3.9
+
+# Activate the environment
+conda activate ddpm
+```
+
+### 2. Install Dependencies
+
+First, install PyTorch manually with the correct CUDA version for your system. For example:
+
+```bash
+# Example for CUDA 13.0
+pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu130
+```
+
+Then, install the rest of the dependencies from `requirements.txt`:
+
+```bash
 pip install -r requirements.txt
 ```
 
-### 2. Train the Model
+### 3. Train the Model
 
 To start training the model, run:
 
@@ -43,7 +64,7 @@ python train.py
 
 The training script will automatically save checkpoints and can be resumed if interrupted.
 
-### 3. Generate Images
+### 4. Generate Images
 
 To generate images using the latest trained model, run:
 
@@ -53,6 +74,7 @@ python generate.py
 
 ## Development Conventions
 
-*   **Checkpointing:** The training script (`train.py`) will save checkpoints to allow for pausing and resuming training.
+*   **Checkpointing:** The training script (`train.py`) saves a `latest_checkpoint.pth` file after every epoch, allowing you to stop and resume training at any time. To save disk space, a numbered checkpoint is only saved every 10 epochs.
+*   **Checkpoint Size:** Each checkpoint file is approximately 700MB.
 *   **Configuration:** All hyperparameters are managed in `config.py` for easy tuning.
 *   **Image Size:** The model is configured to work with 64x64 images.

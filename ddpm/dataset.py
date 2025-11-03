@@ -18,6 +18,7 @@ class CustomDataset(Dataset):
         self.image_paths = self._get_image_paths()
         self.transform = transforms.Compose([
             transforms.Resize((config.IMG_SIZE, config.IMG_SIZE)),
+            transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             ScaleToRange() # Use the class instead of lambda
         ])

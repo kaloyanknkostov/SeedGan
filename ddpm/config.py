@@ -3,7 +3,7 @@ import torch
 # Training hyperparameters
 EPOCHS = 1000
 BATCH_SIZE = 32
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 1e-5
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Diffusion model hyperparameters
