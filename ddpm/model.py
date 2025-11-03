@@ -1,95 +1,181 @@
 import torch
 import torch.nn as nn
-import math
+import torch.nn.functional as F
 
-class Block(nn.Module):
-    def __init__(self, in_ch, out_ch, time_emb_dim, up=False):
-        super().__init__()
-        self.time_mlp =  nn.Linear(time_emb_dim, out_ch)
-        if up:
-            self.conv1 = nn.Conv2d(2*in_ch, out_ch, 3, padding=1)
-            self.transform = nn.ConvTranspose2d(out_ch, out_ch, 4, 2, 1)
+import config
+
+
+class ResBlock(nn.Module):
+    def __init__(self, inp_ch, out_ch, mid_ch=None, residual=False):
+        super(ResBlock, self).__init__()
+
+        self.residual = residual
+        if not mid_ch:
+            mid_ch = out_ch
+        self.resnet_conv = nn.Sequential(
+            nn.Conv2d(
+                in_channels=inp_ch,
+                out_channels=mid_ch,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+            ),
+            nn.GroupNorm(num_groups=8, num_channels=mid_ch),
+            nn.SiLU(),
+            nn.Conv2d(
+                in_channels=mid_ch,
+                out_channels=out_ch,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+            ),
+            nn.GroupNorm(num_groups=8, num_channels=out_ch),
+        )
+
+    def forward(self, x):
+        if self.residual:
+            return x + self.resnet_conv(x)
         else:
-            self.conv1 = nn.Conv2d(in_ch, out_ch, 3, padding=1)
-            self.transform = nn.Conv2d(out_ch, out_ch, 4, 2, 1)
-        self.conv2 = nn.Conv2d(out_ch, out_ch, 3, padding=1)
-        self.bnorm1 = nn.BatchNorm2d(out_ch)
-        self.bnorm2 = nn.BatchNorm2d(out_ch)
-        self.relu  = nn.ReLU()
-
-    def forward(self, x, t, ):
-        # First Conv
-        h = self.bnorm1(self.relu(self.conv1(x)))
-        # Time embedding
-        time_emb = self.relu(self.time_mlp(t))
-        # Extend last 2 dimensions
-        time_emb = time_emb[(..., ) + (None, ) * 2]
-        # Add time channel
-        h = h + time_emb
-        # Second Conv
-        h = self.bnorm2(self.relu(self.conv2(h)))
-
-        # Down or- Upsample
-        return self.transform(h)
+            return self.resnet_conv(x)
 
 
-class SinusoidalPositionEmbeddings(nn.Module):
-    def __init__(self, dim):
-        super().__init__()
-        self.dim = dim
+class SelfAttentionBlock(nn.Module):
+    def __init__(self, channels):
+        super(SelfAttentionBlock, self).__init__()
 
-    def forward(self, time):
-        device = time.device
-        half_dim = self.dim // 2
-        embeddings = math.log(10000) / (half_dim - 1)
-        embeddings = torch.exp(torch.arange(half_dim, device=device) * -embeddings)
-        embeddings = time[:, None] * embeddings[None, :]
-        embeddings = torch.cat((embeddings.sin(), embeddings.cos()), dim=-1)
-        return embeddings
+        self.attn_norm = nn.GroupNorm(num_groups=8, num_channels=channels)
+        self.mha = nn.MultiheadAttention(
+            embed_dim=channels, num_heads=4, batch_first=True
+        )
+
+    def forward(self, x):
+        b, c, h, w = x.shape
+        inp_attn = x.reshape(b, c, h * w)
+        inp_attn = self.attn_norm(inp_attn)
+        inp_attn = inp_attn.transpose(1, 2)
+        out_attn, _ = self.mha(inp_attn, inp_attn, inp_attn)
+        out_attn = out_attn.transpose(1, 2).reshape(b, c, h, w)
+        return x + out_attn
 
 
-class SimpleUnet(nn.Module):
-    """
-    A simplified U-Net architecture.
-    """
-    def __init__(self):
-        super().__init__()
-        image_channels = 3
-        down_channels = (64, 128, 256, 512, 1024)
-        up_channels = (1024, 512, 256, 128, 64)
-        out_dim = 3
-        time_emb_dim = 32
+class DownBlock(nn.Module):
+    def __init__(self, inp_ch, out_ch, t_emb_dim=256):
+        super(DownBlock, self).__init__()
 
-        # Time embedding
-        self.time_mlp = nn.Sequential(
-                SinusoidalPositionEmbeddings(time_emb_dim),
-                nn.Linear(time_emb_dim, time_emb_dim),
-                nn.ReLU()
+        self.down = nn.Sequential(
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            ResBlock(inp_ch=inp_ch, out_ch=inp_ch, residual=True),
+            ResBlock(inp_ch=inp_ch, out_ch=out_ch),
+        )
+
+        self.t_emb_layers = nn.Sequential(
+            nn.SiLU(), nn.Linear(in_features=t_emb_dim, out_features=out_ch)
+        )
+
+    def forward(self, x, t):
+        x = self.down(x)
+        t_emb = self.t_emb_layers(t)[:, :, None, None].repeat(
+            1, 1, x.shape[2], x.shape[3]
+        )
+        return x + t_emb
+
+
+class UpBlock(nn.Module):
+    def __init__(self, inp_ch, out_ch, t_emb_dim=256):
+        super(UpBlock, self).__init__()
+
+        self.upsamp = nn.UpsamplingBilinear2d(scale_factor=2)
+        self.up = nn.Sequential(
+            ResBlock(inp_ch=inp_ch, out_ch=inp_ch, residual=True),
+            ResBlock(inp_ch=inp_ch, out_ch=out_ch, mid_ch=inp_ch // 2),
+        )
+
+        self.t_emb_layers = nn.Sequential(
+            nn.SiLU(), nn.Linear(in_features=t_emb_dim, out_features=out_ch)
+        )
+
+    def forward(self, x, skip, t):
+        x = self.upsamp(x)
+        x = torch.cat([skip, x], dim=1)
+        x = self.up(x)
+        t_emb = self.t_emb_layers(t)[:, :, None, None].repeat(
+            1, 1, x.shape[2], x.shape[3]
+        )
+        return x + t_emb
+
+
+class UNet(nn.Module):
+    def __init__(self, t_emb_dim, device):
+        super(UNet, self).__init__()
+
+        self.device = device
+        self.t_emb_dim = t_emb_dim
+
+        self.inp = ResBlock(inp_ch=3, out_ch=64)
+        self.down1 = DownBlock(inp_ch=64, out_ch=128)
+        self.sa1 = SelfAttentionBlock(channels=128)
+        self.down2 = DownBlock(inp_ch=128, out_ch=256)
+        self.sa2 = SelfAttentionBlock(channels=256)
+        self.down3 = DownBlock(inp_ch=256, out_ch=256)
+        self.sa3 = SelfAttentionBlock(channels=256)
+
+        self.lat1 = ResBlock(inp_ch=256, out_ch=512)
+        self.lat2 = ResBlock(inp_ch=512, out_ch=512)
+        self.lat3 = ResBlock(inp_ch=512, out_ch=256)
+
+        self.up1 = UpBlock(inp_ch=512, out_ch=128)
+        self.sa4 = SelfAttentionBlock(channels=128)
+        self.up2 = UpBlock(inp_ch=256, out_ch=64)
+        self.sa5 = SelfAttentionBlock(channels=64)
+        self.up3 = UpBlock(inp_ch=128, out_ch=64)
+        self.sa6 = SelfAttentionBlock(channels=64)
+
+        self.out = nn.Conv2d(in_channels=64, out_channels=3, kernel_size=1)
+
+    def position_embeddings(self, t, channels):
+        i = 1 / (
+            10000
+            ** (
+                torch.arange(start=0, end=channels, step=2, device=self.device)
+                / channels
             )
+        )
+        pos_emb_sin = torch.sin(t.repeat(1, channels // 2) * i)
+        pos_emb_cos = torch.cos(t.repeat(1, channels // 2) * i)
+        pos_emb = torch.cat([pos_emb_sin, pos_emb_cos], dim=-1)
+        return pos_emb
 
-        # Initial projection
-        self.conv0 = nn.Conv2d(image_channels, down_channels[0], 3, padding=1)
+    def forward(self, x, t):
+        t = t.unsqueeze(1).float()
+        t = self.position_embeddings(t, self.t_emb_dim)
 
-        # Downsample
-        self.downs = nn.ModuleList([Block(down_channels[i], down_channels[i+1],                                     time_emb_dim)                     for i in range(len(down_channels)-1)])
-        # Upsample
-        self.ups = nn.ModuleList([Block(up_channels[i], up_channels[i+1],                                         time_emb_dim, up=True)                     for i in range(len(up_channels)-1)])
+        x1 = self.inp(x)
+        x2 = self.down1(x1, t)
+        x2 = self.sa1(x2)
+        x3 = self.down2(x2, t)
+        x3 = self.sa2(x3)
+        x4 = self.down3(x3, t)
+        x4 = self.sa3(x4)
 
-        self.output = nn.Conv2d(up_channels[-1], out_dim, 1)
+        x4 = self.lat1(x4)
+        x4 = self.lat2(x4)
+        x4 = self.lat3(x4)
 
-    def forward(self, x, timestep):
-        # Embedd time
-        t = self.time_mlp(timestep)
-        # Initial conv
-        x = self.conv0(x)
-        # Unet
-        residual_inputs = []
-        for down in self.downs:
-            x = down(x, t)
-            residual_inputs.append(x)
-        for up in self.ups:
-            residual_x = residual_inputs.pop()
-            # Add residual x as additional channels
-            x = torch.cat((x, residual_x), dim=1)
-            x = up(x, t)
-        return self.output(x)
+        x = self.up1(x4, x3, t)
+        x = self.sa4(x)
+        x = self.up2(x, x2, t)
+        x = self.sa5(x)
+        x = self.up3(x, x1, t)
+        x = self.sa6(x)
+        output = self.out(x)
+        return output
+
+
+# For compatibility with our existing train.py, we'll keep the SimpleUnet name
+# but it will now contain the advanced architecture.
+class SimpleUnet(UNet):
+    def __init__(self):
+        # The notebook hardcodes t_emb_dim=256 and device='cuda'.
+        # We will do the same for now, but pull device from our config.
+        super(SimpleUnet, self).__init__(t_emb_dim=256, device=config.DEVICE)
+

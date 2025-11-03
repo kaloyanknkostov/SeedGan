@@ -1,0 +1,4 @@
+name: Real-ESRGAN
+channels:
+  - defaults
+prefix: /home/kaloyan/anaconda3/envs/Real-ESRGAN

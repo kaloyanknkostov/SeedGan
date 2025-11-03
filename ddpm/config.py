@@ -2,9 +2,15 @@ import torch
 
 # Training hyperparameters
 EPOCHS = 1000
-BATCH_SIZE = 32
-LEARNING_RATE = 1e-5
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+BATCH_SIZE = 8
+LEARNING_RATE = 1e-4
+WARMUP_STEPS = 5000
+
+# Gradient accumulation
+VIRTUAL_BATCH_SIZE = 32
+GRADIENT_ACCUMULATION_STEPS = VIRTUAL_BATCH_SIZE // BATCH_SIZE
+
+DEVICE = "cuda"
 
 # Diffusion model hyperparameters
 T = 1000  # Number of timesteps

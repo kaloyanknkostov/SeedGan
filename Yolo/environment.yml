@@ -1,0 +1,4 @@
+name: yolo-pip
+channels:
+  - defaults
+prefix: /home/kaloyan/anaconda3/envs/yolo-pip
