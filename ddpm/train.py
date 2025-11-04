@@ -1,7 +1,7 @@
 import os
 import torch
 import torch.nn.functional as F
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from torchvision.utils import save_image
 from tqdm import tqdm
 
@@ -19,7 +19,7 @@ def train():
     # Initialize model, optimizer, and diffusion
     model = SimpleUnet().to(config.DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=config.LEARNING_RATE)
-    scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.5, patience=5)
+    scheduler = CosineAnnealingLR(optimizer, T_max=config.EPOCHS, eta_min=1e-6)
     diffusion = Diffusion(timesteps=config.T, device=config.DEVICE)
     dataloader = get_dataloader()
 
@@ -32,8 +32,11 @@ def train():
         checkpoint = torch.load(latest_checkpoint_path)
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        if 'scheduler_state_dict' in checkpoint:
-            scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+
+        # Reset the learning rate to the initial value
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = config.LEARNING_RATE
+
         start_epoch = checkpoint['epoch'] + 1
         global_step = checkpoint['global_step']
 
@@ -78,7 +81,7 @@ def train():
 
         epoch_loss /= len(dataloader)
         if global_step >= config.WARMUP_STEPS:
-            scheduler.step(epoch_loss)
+            scheduler.step()
 
         # Save a numbered checkpoint every 10 epochs
         if epoch % 10 == 0:
