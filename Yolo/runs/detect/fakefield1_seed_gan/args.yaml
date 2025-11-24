@@ -1,7 +1,7 @@
 task: detect
 mode: train
 model: yolov8m.pt
-data: /home/kaloyan/Code/Thesis/data/SeedGanData/processed/dataset.yaml
+data: /home/kaloyan/Code/Thesis/data/SeedGanData/FakeFields1/dataset.yaml
 epochs: 50
 time: null
 patience: 100
@@ -13,7 +13,7 @@ cache: false
 device: null
 workers: 8
 project: null
-name: seedgan_run_one
+name: fakefield1_seed_gan
 exist_ok: false
 pretrained: true
 optimizer: auto
@@ -103,4 +103,4 @@ auto_augment: randaugment
 erasing: 0.4
 cfg: null
 tracker: botsort.yaml
-save_dir: /home/kaloyan/Code/Thesis/Models/Yolo v8m pt first train/runs/detect/seedgan_run_one
+save_dir: /home/kaloyan/Code/Thesis/SeedGan/Yolo/runs/detect/fakefield1_seed_gan

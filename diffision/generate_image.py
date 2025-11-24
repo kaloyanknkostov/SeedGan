@@ -15,11 +15,11 @@ BASE_MODEL_ID = "runwayml/stable-diffusion-v1-5"
 LORA_FILE = "/home/kaloyan/Code/Thesis/SeedGan/diffision/my_crop_lora_output/pytorch_lora_weights.safetensors"
 
 # The directory where you want to save your generated images
-OUTPUT_DIR = "/home/kaloyan/Code/Thesis/SeedGan/generated_images"
+OUTPUT_DIR = "/home/kaloyan/Code/Thesis/SeedGan/diffision/output/"
 
 # --- 2. Generation Parameters ---
 # Try prompts based on your captions, e.g., "a photo of a wheat"
-PROMPT = "a photo of a  green crop coming out of the snowy ground"
+PROMPT = "a photo of a  green crop average size"
 NEGATIVE_PROMPT = "blurry, low quality, cartoon, watermark, text, person, bird"
 LORA_WEIGHT = 0.8  # The strength of your LoRA (0.0 to 1.0)
 IMAGE_FILENAME = "my_first_crop1.png"
