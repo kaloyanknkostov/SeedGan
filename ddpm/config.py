@@ -21,4 +21,4 @@ DATASET_PATH = "/home/kaloyan/Code/Thesis/SeedGan/data/crops_with_background_sca
 
 # Checkpoint and logging parameters
 CHECKPOINT_DIR = "checkpoints"
-GENERATED_IMAGE_DIR = "generated_images"
+GENERATED_IMAGE_DIR = "output"

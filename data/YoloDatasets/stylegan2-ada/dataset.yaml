@@ -1,0 +1,12 @@
+# dataset.yaml content
+# Path to data root (relative to the directory the script is run from)
+path:  /home/kaloyan/Code/Thesis/SeedGan/data/YoloDatasets/stylegan2-ada
+train: images/train
+val: images/val
+test: images/test 
+
+# Number of classes
+nc: 2 # CHANGE THIS to your actual number of classes
+
+# Class names (in the order of your label files)
+names: ['crop', 'weed'] # CHANGE THIS to your class names

@@ -1,8 +1,8 @@
 yolo task=detect \
      mode=train \
-     model=yolov8m.pt \
-     data=/home/kaloyan/Code/Thesis/data/SeedGanData/processed/dataset.yaml \
+     model=yolov8x.pt \
+     data=/home/kaloyan/Code/Thesis/SeedGan/data/YoloDatasets/stylegan2-ada+original/dataset.yaml \
      epochs=50 \
      imgsz=640 \
      batch=16 \
-     name=seedgan_run_fake_one
+     name=stylegan2-ada+original_xl

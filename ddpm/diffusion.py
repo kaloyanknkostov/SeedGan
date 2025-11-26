@@ -47,9 +47,12 @@ class Diffusion:
             return model_mean + torch.sqrt(posterior_variance_t) * noise
 
     @torch.no_grad()
-    def p_sample_loop(self, model, shape):
+    def p_sample_loop(self, model, shape, noise=None):
         b = shape[0]
-        img = torch.randn(shape, device=self.device)
+        if noise is None:
+            img = torch.randn(shape, device=self.device)
+        else:
+            img = noise.to(self.device)
         imgs = []
 
         for i in reversed(range(0, self.timesteps)):
