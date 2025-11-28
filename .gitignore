@@ -6,4 +6,5 @@
 *.safetensors 
 *.zip
 lightweightGan/.aim
+lightweightGan/
 
