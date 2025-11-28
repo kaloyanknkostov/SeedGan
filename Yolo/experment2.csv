@@ -1,0 +1,10 @@
+Yolo model,name,mAP50-95,%crops killed
+nano,original,0.566,0.20
+medium,original,0.606,0.17
+xl,original,0.622,0.14
+nano,styleGan2,0.560,0.19
+medium,styleGan2,0.622,0.14
+xl,styleGan2,0.623,0.14
+nano,DDPM,0.559,0.20
+medium,DDPM,0.622,0.15
+

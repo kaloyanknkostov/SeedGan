@@ -131,9 +131,20 @@ def paste_crops(args):
             for i, crop_obj in enumerate(crops_sorted_by_size):
                 target_area = sampled_areas[i]
                 original_w, original_h = crop_obj.size
+
+                if original_w <= 0 or original_h <= 0:
+                    continue
+
                 aspect_ratio = original_w / original_h
+                if aspect_ratio == 0:
+                    continue
+
                 target_h = int(np.sqrt(target_area / aspect_ratio))
                 target_w = int(target_h * aspect_ratio)
+
+                if target_w <= 0 or target_h <= 0:
+                    continue
+
                 target_sizes[crop_obj.filename] = (target_w, target_h)
             [c.close() for c in crops_to_paste_objects]
 

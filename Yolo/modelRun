@@ -1,8 +1,8 @@
 yolo task=detect \
      mode=train \
-     model=yolov8x.pt \
-     data=/home/kaloyan/Code/Thesis/SeedGan/data/YoloDatasets/stylegan2-ada+original/dataset.yaml \
+     model=yolov8m.pt \
+     data=/home/kaloyan/Code/Thesis/SeedGan/data/YoloDatasets/stich/dataset.yaml \
      epochs=50 \
-     imgsz=640 \
+     imgsz=640\
      batch=16 \
-     name=stylegan2-ada+original_xl
+     name=stich_medium

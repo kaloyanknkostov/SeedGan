@@ -1,0 +1,7 @@
+configuration,name,mAP50-95,%crops killed
+O,baseline,0.606,0.17
+A,Stylegan2-ada,0.622,0.14
+B,DDPM,0.622,0.15
+C,Syntetic only,0.607,0.13
+D,Small dataset,0.618,0.14
+E,Stiched only,0.609,0.16
